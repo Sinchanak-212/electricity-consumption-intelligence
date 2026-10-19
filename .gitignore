@@ -1,0 +1,35 @@
+﻿# Python
+__pycache__/
+*.py[cod]
+*.pyd
+.venv/
+venv/
+env/
+.pytest_cache/
+.mypy_cache/
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+
+# Data files: keep downloaded/raw datasets out of Git
+data/raw/*
+data/processed/*
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+
+# Generated results and logs
+reports/*
+!reports/.gitkeep
+logs/
+*.log
+*.tmp
+
+# IDE and operating system
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
