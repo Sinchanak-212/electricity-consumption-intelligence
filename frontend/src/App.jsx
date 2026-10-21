@@ -12,18 +12,20 @@ import './index.css';
 export default function App() {
   return (
     <BrowserRouter>
-      <div className="layout">
+      <div className="app-shell">
         <Sidebar />
-        <main className="content">
+        <div className="main-area">
           <Header />
-          <Routes>
-            <Route path="/" element={<Overview />} />
-            <Route path="/peak" element={<PeakIntelligence />} />
-            <Route path="/behaviour" element={<ConsumptionBehaviour />} />
-            <Route path="/forecast" element={<Forecasting />} />
-            <Route path="/processing" element={<DataProcessing />} />
-          </Routes>
-        </main>
+          <div className="page-content">
+            <Routes>
+              <Route path="/" element={<Overview />} />
+              <Route path="/peak" element={<PeakIntelligence />} />
+              <Route path="/behaviour" element={<ConsumptionBehaviour />} />
+              <Route path="/forecast" element={<Forecasting />} />
+              <Route path="/processing" element={<DataProcessing />} />
+            </Routes>
+          </div>
+        </div>
       </div>
     </BrowserRouter>
   );
