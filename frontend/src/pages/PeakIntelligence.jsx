@@ -1,8 +1,9 @@
-﻿import React, { useState } from "react";
+﻿import React, { useEffect, useState } from "react";
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceLine, Cell
 } from "recharts";
+import { fetchJson } from "../lib/api";
 import { peakEvents } from "../demo-data/consumptionTimeSeries";
 
 const kpis = [
@@ -29,6 +30,37 @@ function TooltipPeak({ active, payload, label }) {
 
 export default function PeakIntelligence() {
   const [view, setView] = useState("events");
+  const [peaks, setPeaks] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadPeaks() {
+      try {
+        setLoading(true);
+        const data = await fetchJson("/api/peaks");
+        if (active) {
+          setPeaks(data);
+        }
+      } catch (err) {
+        if (active) {
+          setPeaks({ status: "not_ready", items: [] });
+        }
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadPeaks();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const peakEventRows = peaks?.status === "ok" && peaks.items?.length ? peaks.items : peakEvents;
 
   return (
     <div className="peak-page-wrap">
@@ -37,7 +69,9 @@ export default function PeakIntelligence() {
         <div className="page-hero-sub">Analyse, forecast and mitigate demand peaks across your district.</div>
       </div>
       <div style={{ display: "flex", justifyContent: "flex-end", marginBottom: 14 }}>
-        <span className="demo-banner-tag" style={{ padding: "4px 12px", fontSize: "var(--text-xs)", background: "rgba(104,211,145,0.06)", border: "1px solid rgba(104,211,145,0.2)", borderRadius: 4, color: "var(--accent-green)", fontWeight: 500 }}>DEMO</span>
+        <span className="demo-banner-tag" style={{ padding: "4px 12px", fontSize: "var(--text-xs)", background: "rgba(104,211,145,0.06)", border: "1px solid rgba(104,211,145,0.2)", borderRadius: 4, color: "var(--accent-green)", fontWeight: 500 }}>
+          {loading ? "LOADING" : peaks?.status === "ok" ? "LIVE" : "DEMO"}
+        </span>
       </div>
 
       {/* KPIs */}
@@ -114,21 +148,21 @@ export default function PeakIntelligence() {
             </tr>
           </thead>
           <tbody>
-            {peakEvents.map((e) => (
-              <tr key={e.id}>
+            {peakEventRows.map((e) => (
+              <tr key={e.id || `${e.date}-${e.time}`}>
                 <td className="signal-time">{e.date}</td>
                 <td>{e.time}</td>
-                <td style={{ fontWeight: 600, color: "var(--text-primary)" }}>{e.peak.toFixed(2)}</td>
-                <td style={{ color: "var(--text-muted)" }}>{e.threshold.toFixed(2)}</td>
-                <td>{e.duration}</td>
+                <td style={{ fontWeight: 600, color: "var(--text-primary)" }}>{Number(e.peak ?? 0).toFixed(2)}</td>
+                <td style={{ color: "var(--text-muted)" }}>{Number(e.threshold ?? 0).toFixed(2)}</td>
+                <td>{e.duration || "—"}</td>
                 <td>
                   <span className={`severity-badge ${e.severity === "elevated" ? "medium" : e.severity}`}>
-                    {e.severity.charAt(0).toUpperCase() + e.severity.slice(1)}
+                    {String(e.severity || "normal").charAt(0).toUpperCase() + String(e.severity || "normal").slice(1)}
                   </span>
                 </td>
-                <td style={{ color: "var(--text-secondary)", fontSize: "var(--text-xs)" }}>{e.cluster}</td>
-                <td style={{ color: e.reduction > 0 ? "var(--accent-amber)" : "var(--accent-green)", fontWeight: 600 }}>
-                  {e.reduction > 0 ? `−${e.reduction.toFixed(2)} kW` : "None"}
+                <td style={{ color: "var(--text-secondary)", fontSize: "var(--text-xs)" }}>{e.cluster || "N/A"}</td>
+                <td style={{ color: Number(e.reduction || 0) > 0 ? "var(--accent-amber)" : "var(--accent-green)", fontWeight: 600 }}>
+                  {Number(e.reduction || 0) > 0 ? `−${Number(e.reduction).toFixed(2)} kW` : "None"}
                 </td>
               </tr>
             ))}

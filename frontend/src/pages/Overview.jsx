@@ -1,8 +1,9 @@
-﻿import React, { useState } from "react";
+﻿import React, { useEffect, useMemo, useState } from "react";
 import {
   AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, ReferenceLine, Legend
 } from "recharts";
+import { fetchJson } from "../lib/api";
 import { kpis, signalsData } from "../demo-data/kpis";
 import { consumptionSeries, profileSparklines } from "../demo-data/consumptionTimeSeries";
 
@@ -49,7 +50,76 @@ export default function Overview() {
   const [dataset, setDataset] = useState("north-1");
   const [aggregation, setAggregation] = useState("30min");
   const [timeRange, setTimeRange] = useState("27 Oct 2026");
+  const [overviewData, setOverviewData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   const peakForecastPct = 78;
+
+  useEffect(() => {
+    let active = true;
+
+    async function loadOverview() {
+      try {
+        setLoading(true);
+        const data = await fetchJson("/api/overview");
+        if (active) {
+          setOverviewData(data);
+          setError(null);
+        }
+      } catch (err) {
+        if (active) {
+          setOverviewData(null);
+          setError(err.message || "Unable to reach the backend.");
+        }
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadOverview();
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  const heroStatus = useMemo(() => {
+    if (loading) return "Loading live dataset status...";
+    if (error) return "API unavailable — showing demo dashboard";
+    if (overviewData && overviewData.status === "pass") return "Live validation passed";
+    if (overviewData) return "Pipeline data available but not yet fully ready";
+    return "Demo dataset";
+  }, [loading, error, overviewData]);
+
+  const visibleKpis = useMemo(() => {
+    if (!overviewData) return kpis;
+    return [
+      {
+        id: "api-status",
+        label: "Validation status",
+        value: overviewData.status === "pass" ? "Ready" : "Pending",
+        unit: "",
+        delta: overviewData.rows_scanned ? `${overviewData.rows_scanned.toLocaleString()} rows` : "Unknown",
+        deltaDir: "up",
+        deltaText: "dataset scan",
+        accentColor: "var(--accent-green)",
+        description: "Current validation state from the backend.",
+      },
+      {
+        id: "api-time-range",
+        label: "Time range",
+        value: overviewData.time_range?.start ? "Live" : "N/A",
+        unit: "",
+        delta: overviewData.time_range?.start || "Not available",
+        deltaDir: "neutral",
+        deltaText: "from report",
+        accentColor: "var(--accent-cyan)",
+        description: "Reported dataset time span.",
+      },
+      ...kpis.slice(2),
+    ];
+  }, [overviewData]);
 
   return (
     <div className="overview-wrap">
@@ -68,10 +138,13 @@ export default function Overview() {
       <div className="demo-banner">
         <span className="demo-banner-icon">✓</span>
         <span>
-          <strong>SAMPLE DATA / North district smart meter data.</strong> All readings, forecasts and insights are illustrative.{" "}
-          <span style={{ color: "var(--text-muted)" }}>Not operational evidence.</span>
+          <strong>{error ? "API unavailable" : "PIPELINE STATUS / " + heroStatus}</strong>{" "}
+          {error
+            ? "The backend is currently unavailable, so the dashboard is showing the design-safe demo view."
+            : "The overview is using the latest available validation state from the project API."}
+          <span style={{ color: "var(--text-muted)" }}> {error ? "Not operational evidence." : "Data pipeline remains educational and demo-safe."}</span>
         </span>
-        <span className="demo-banner-tag">Demo</span>
+        <span className="demo-banner-tag">{error ? "Demo" : overviewData ? "Live" : "Demo"}</span>
       </div>
 
       {/* Filter Bar */}
@@ -101,7 +174,7 @@ export default function Overview() {
 
       {/* KPI Cards */}
       <div className="kpi-grid">
-        {kpis.map((k) => (
+        {visibleKpis.map((k) => (
           <div className="kpi-card" key={k.id} style={{ "--kpi-accent": k.accentColor }} title={k.description}>
             <div className="kpi-label">{k.label}</div>
             <div className="kpi-value">

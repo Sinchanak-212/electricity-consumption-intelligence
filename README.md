@@ -45,9 +45,32 @@ Dataset → Validation and preprocessing → HDFS → Hadoop MapReduce and Apach
 
 ## Project Status
 
-**Phase 1: Repository and project structure setup.**
+**Stage A and Stage B completed for the foundational pipeline.**
 
-Implementation, dataset validation, experiments, and evaluation results will be added as they are completed. Planned features are not yet claimed as implemented.
+The repository has been audited, the raw dataset has been validated, and a working Hadoop streaming aggregation job has been implemented and executed successfully on the real dataset. The project is now ready to move into Spark analytics and API/dashboard integration.
+
+## Implemented so far
+
+- Repository audit and setup review complete.
+- Streaming dataset validation implemented in `scripts/validate_dataset.py`.
+- Synthetic tests for validation and hourly Hadoop aggregation added under `tests/`.
+- Hadoop MapReduce job for hourly totals and peak summaries implemented and executed on the real dataset.
+
+## Current architecture
+
+`raw dataset -> validation -> HDFS -> Hadoop streaming -> Spark analytics -> API -> dashboard`
+
+## How to run the validated pipeline
+
+```bash
+python3 /mnt/c/Users/User/electricity-intelligence/scripts/validate_dataset.py \
+  --input /mnt/c/Users/User/electricity-intelligence/data/raw/LD2011_2014.txt \
+  --output /mnt/c/Users/User/electricity-intelligence/reports/dataset_validation_report.json
+
+python3 /mnt/c/Users/User/electricity-intelligence/scripts/run_hadoop_hourly_summary.py \
+  --input /user/sinchu/electricity/raw/LD2011_2014.txt \
+  --output /user/sinchu/electricity/processed/hourly_summary
+```
 
 ## Reproducibility and Limitations
 
